@@ -31,8 +31,14 @@ class Player :
 	def resetBet(self) :
 		self.betAmount = self.startingBet
 
-	def updateBalance(self, won) :
-		if won :
-			self.balance += self.betAmount
-		else :
-			self.balance -= self.betAmount
+	def placeBet(self) :
+		if self.betAmount > self.balance :
+			return False
+
+		self.balance -= self.betAmount
+		return True
+
+	def receiveWinnings(self) :
+		amountWon = self.betAmount * 2
+		self.balance += amountWon
+		return amountWon
