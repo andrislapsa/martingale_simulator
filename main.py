@@ -1,21 +1,54 @@
-import sys
+import sys, getopt
 from termcolor import colored, cprint
 import roulette
 import player
 
-if sys.argv[1] == "help" :
-	print "arguments: gamesToPlay balance startingBet"
-	exit()
+# default arguments
 
-gamesToPlay = int(sys.argv[1]) if sys.argv[1] else 10
-balance = int(sys.argv[2]) if sys.argv[2] else 1000
-startingBet = int(sys.argv[3]) if sys.argv[3] else 1
+def getArguments() :
+	roundsToPlay = 10
+	startingBalance = 1000
+	startingBet = 1
+	simulations = 1
+	showDetailedInfo = False
 
-simulations = 1
+	argv = sys.argv[1:]
+	opts, args = getopt.getopt(argv, "", [
+		"rounds=",
+		"startingBalance=",
+		"startingBet=",
+		"simulations=",
+		"showDetailedInfo="
+	])
+
+	for opt, arg in opts :
+		if opt == "--rounds" :
+			roundsToPlay = int(arg)
+		elif opt == "--startingBalance" :
+			startingBalance = int(arg)
+		elif opt == "--startingBet" :
+			startingBet = int(arg)
+		elif opt == "--simulations" :
+			simulations = int(arg)
+		elif opt == "--showDetailedInfo" :
+			showDetailedInfo = True if arg == "1" else False
+
+	return {
+		"roundsToPlay": roundsToPlay,
+		"startingBalance": startingBalance,
+		"startingBet": startingBet,
+		"simulations": simulations,
+		"showDetailedInfo": showDetailedInfo
+	}
+
+arguments = getArguments()
+
 successfulGames = 0
+totalProfit = 0
+averageProfit = 0
 
-print "Will attempt to play %d games with balance of %d and using starting bet as %d" % (
-	gamesToPlay, balance, startingBet
+print "Will run %s simulations, each game will attempt to play %d rounds with starting balance of %d and starting bet as %d" % (
+	arguments["simulations"], arguments["roundsToPlay"], arguments["startingBalance"], arguments["startingBet"]
 )
 
 def printFormattedRoundResult(gameInfo) :
@@ -28,8 +61,6 @@ def printFormattedRoundResult(gameInfo) :
 		("green" if gameResult["status"] == "won" else "red"), attrs=["bold"]
 	)
 
-	# print "%d, %d" % (gameResult["placedBet"]["amount"], gameInfo["balanceAfterBet"])
-
 	cprint(
 		"=== game #%d ===" % gameInfo["gameNumber"],
 		"grey", attrs=["bold"]
@@ -41,7 +72,6 @@ def printFormattedRoundResult(gameInfo) :
 		gameInfo["balanceAfterBet"], eurSign
 	)
 
-	# print gameInfo
 	print "Gambler placed %s%s on %s, ball landed on %s and in result %s" % (
 		gameResult["placedBet"]["amount"], eurSign,
 		colored(gameResult["placedBet"]["color"], colorMap[gameResult["placedBet"]["color"]], attrs=["bold"]),
@@ -55,13 +85,14 @@ def printFormattedRoundResult(gameInfo) :
 		gameInfo["balanceAfterSpin"], eurSign
 	)
 
-for simulation in range(simulations) :
+for simulation in range(arguments["simulations"]) :
 	game = roulette.Roulette()
-	gambler = player.Player(balance, startingBet)
+	gambler = player.Player(arguments["startingBalance"], arguments["startingBet"])
+	gameProfit = 0
 
 	gameInfo = {}
 
-	for gameNumber in range(gamesToPlay) :
+	for gameNumber in range(arguments["roundsToPlay"]) :
 		gameInfo = {
 			"gameNumber": gameNumber + 1,
 			"balanceBeforeBet": gambler.balance
@@ -91,21 +122,35 @@ for simulation in range(simulations) :
 		gameInfo["amountWon"] = amountWon
 		gameInfo["balanceAfterSpin"] = gambler.balance
 
-		printFormattedRoundResult(gameInfo)
+		if arguments["showDetailedInfo"] :
+			print "heeei"
+			printFormattedRoundResult(gameInfo)
 
-	# cprint(
-	# 	"=== simulation #%d ===" % (simulation + 1),
-	# 	"grey", attrs=["bold"]
-	# )
+	cprint(
+		"=== simulation #%d ===" % (simulation + 1),
+		"grey", attrs=["bold"]
+	)
 
-	# print gameInfo
+	successfulGame = gameInfo["balanceAfterSpin"] > arguments["startingBalance"]
 
-	if gameInfo["balanceAfterSpin"] > balance :
+	status = colored(
+		"[%s]" % ("success" if successfulGame else "fail"),
+		("green" if successfulGame else "red"), attrs=["bold"]
+	)
+
+	if successfulGame :
 		successfulGames += 1
 
-	# print "Games played: %d final balance %d" % (gameInfo["gameNumber"], gameInfo["balanceAfterSpin"])
+	gameProfit = gameInfo["balanceAfterSpin"] - arguments["startingBalance"]
+	totalProfit += gameProfit
 
-print "Total successful games: %d" % successfulGames
+	print "%s rounds played: %d final balance %d total profit %d" % (status, gameInfo["gameNumber"], gameInfo["balanceAfterSpin"], gameProfit)
+
+successfulGameRate = float(successfulGames) / float(arguments["simulations"]) * 100
+averageProfit = float(totalProfit) / float(arguments["simulations"])
+
+print "=== summary ==="
+print "Total successful games: %d (rate %f%%) average profit %d" % (successfulGames, successfulGameRate, averageProfit)
 
 
 
