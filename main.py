@@ -46,6 +46,8 @@ arguments = getArguments()
 successfulGames = 0
 totalProfit = 0
 averageProfit = 0
+worstProfit = 0
+bestProfit = 0
 
 print "Will run %s simulations, each game will attempt to play %d rounds with starting balance of %d and starting bet as %d" % (
 	arguments["simulations"], arguments["roundsToPlay"], arguments["startingBalance"], arguments["startingBet"]
@@ -123,7 +125,6 @@ for simulation in range(arguments["simulations"]) :
 		gameInfo["balanceAfterSpin"] = gambler.balance
 
 		if arguments["showDetailedInfo"] :
-			print "heeei"
 			printFormattedRoundResult(gameInfo)
 
 	cprint(
@@ -142,7 +143,14 @@ for simulation in range(arguments["simulations"]) :
 		successfulGames += 1
 
 	gameProfit = gameInfo["balanceAfterSpin"] - arguments["startingBalance"]
+
 	totalProfit += gameProfit
+
+	if gameProfit > bestProfit :
+		bestProfit = gameProfit
+
+	if gameProfit < worstProfit :
+		worstProfit = gameProfit
 
 	print "%s rounds played: %d final balance %d total profit %d" % (status, gameInfo["gameNumber"], gameInfo["balanceAfterSpin"], gameProfit)
 
@@ -150,7 +158,7 @@ successfulGameRate = float(successfulGames) / float(arguments["simulations"]) * 
 averageProfit = float(totalProfit) / float(arguments["simulations"])
 
 print "=== summary ==="
-print "Total successful games: %d (rate %f%%) average profit %d" % (successfulGames, successfulGameRate, averageProfit)
+print "Total successful games: %d (rate %f%%) average profit %d, best profit %d, worst profit %d" % (successfulGames, successfulGameRate, averageProfit, bestProfit, worstProfit)
 
 
 
